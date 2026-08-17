@@ -1,0 +1,45 @@
+cubes:
+  - name: issues
+    sql_table: public.issues
+    joins:
+      - name: orgs
+        sql: "{CUBE}.org_id = {orgs.id}"
+        relationship: many_to_one
+      - name: repos
+        sql: "{CUBE}.repo_id = {repos.id}"
+        relationship: many_to_one
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+      - name: orgId
+        sql: org_id
+        type: string
+      - name: createdAt
+        sql: created_at
+        type: time
+      - name: state
+        sql: state
+        type: string
+    measures:
+      - name: count
+        type: count
+      - name: open_count
+        type: count
+        filters:
+          - sql: "{CUBE}.state = 'open'"
+      - name: closed_count
+        type: count
+        filters:
+          - sql: "{CUBE}.state = 'closed'"
+      - name: avg_resolution_time_hours
+        sql: "extract(epoch from ({CUBE}.closed_at - {CUBE}.created_at)) / 3600.0"
+        type: avg
+      - name: median_resolution_time_hours
+        sql: "extract(epoch from ({CUBE}.closed_at - {CUBE}.created_at)) / 3600.0"
+        type: avg
+        title: Median issue resolution hours (avg placeholder)
+      - name: bug_ratio
+        sql: "1.0 * count(case when {CUBE}.is_bug then 1 end) / nullif(count(*), 0)"
+        type: number

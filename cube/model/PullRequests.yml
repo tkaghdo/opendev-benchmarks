@@ -1,0 +1,52 @@
+cubes:
+  - name: pull_requests
+    sql_table: public.pull_requests
+    joins:
+      - name: orgs
+        sql: "{CUBE}.org_id = {orgs.id}"
+        relationship: many_to_one
+      - name: repos
+        sql: "{CUBE}.repo_id = {repos.id}"
+        relationship: many_to_one
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+      - name: orgId
+        sql: org_id
+        type: string
+      - name: repoId
+        sql: repo_id
+        type: number
+      - name: createdAt
+        sql: created_at
+        type: time
+      - name: mergedAt
+        sql: merged_at
+        type: time
+    measures:
+      - name: count
+        type: count
+      - name: merged_count
+        type: count
+        filters:
+          - sql: "{CUBE}.merged_at is not null"
+      - name: avg_cycle_time_hours
+        sql: "extract(epoch from ({CUBE}.merged_at - {CUBE}.created_at)) / 3600.0"
+        type: avg
+      - name: avg_time_to_first_review_hours
+        sql: "extract(epoch from ({CUBE}.first_review_at - {CUBE}.created_at)) / 3600.0"
+        type: avg
+      - name: avg_pr_size
+        sql: "coalesce({CUBE}.additions, 0) + coalesce({CUBE}.deletions, 0)"
+        type: avg
+      # Launch metric is median; implement percentile / pre-agg in Build 2.
+      - name: median_cycle_time_hours
+        sql: "extract(epoch from ({CUBE}.merged_at - {CUBE}.created_at)) / 3600.0"
+        type: avg
+        title: Median PR cycle time hours (avg placeholder)
+      - name: median_time_to_first_review_hours
+        sql: "extract(epoch from ({CUBE}.first_review_at - {CUBE}.created_at)) / 3600.0"
+        type: avg
+        title: Median time to first review hours (avg placeholder)

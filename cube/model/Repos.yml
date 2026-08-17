@@ -1,0 +1,30 @@
+cubes:
+  - name: repos
+    sql_table: public.repos
+    joins:
+      - name: orgs
+        sql: "{CUBE}.org_id = {orgs.id}"
+        relationship: many_to_one
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+      - name: orgId
+        sql: org_id
+        type: string
+      - name: name
+        sql: name
+        type: string
+      - name: fullName
+        sql: full_name
+        type: string
+      - name: language
+        sql: language
+        type: string
+    measures:
+      - name: count
+        type: count
+      - name: stars
+        sql: stars
+        type: sum

@@ -1,0 +1,13 @@
+---
+description: OpenDev Benchmarks product and Embedded Canvas naming
+alwaysApply: true
+---
+
+# OpenDev Benchmarks
+
+- Visitor-facing product: **OpenDev Benchmarks** only.
+- Analytics platform: **Embedded Canvas** only. Never Kepler in UI, docs, or GTM.
+- Apache is hosted dashboard-builder infrastructure, named on `/how-it-works` and in operator notes — not a product visitors buy.
+- This repo is a customer of Embedded Canvas. Use the public session API and embed SDK. Do not vendor control-plane code.
+- Never call GitHub during visitor page loads. Tenant isolation is enforced server-side on embed sessions.
+- Launch = Build 7. Do not block launch on Ask OpenDev or 15–25 organizations.

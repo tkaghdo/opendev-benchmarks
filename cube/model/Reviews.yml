@@ -1,0 +1,17 @@
+cubes:
+  - name: reviews
+    sql_table: public.reviews
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+      - name: state
+        sql: state
+        type: string
+      - name: submittedAt
+        sql: submitted_at
+        type: time
+    measures:
+      - name: count
+        type: count

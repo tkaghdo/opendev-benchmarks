@@ -1,0 +1,21 @@
+{
+  "name": "opendev-benchmarks",
+  "private": true,
+  "description": "OpenDev Benchmarks — public developer analytics powered by Embedded Canvas",
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @opendev/web dev",
+    "build": "pnpm --filter @opendev/web build",
+    "dev:ingest": "pnpm --filter @opendev/ingestion dev",
+    "ingest": "pnpm --filter @opendev/ingestion start",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "stack:up": "docker compose up -d"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp"]
+  }
+}

@@ -1,0 +1,21 @@
+cubes:
+  - name: commits
+    sql_table: public.commits
+    joins:
+      - name: orgs
+        sql: "{CUBE}.org_id = {orgs.id}"
+        relationship: many_to_one
+    dimensions:
+      - name: sha
+        sql: sha
+        type: string
+        primary_key: true
+      - name: orgId
+        sql: org_id
+        type: string
+      - name: committedAt
+        sql: committed_at
+        type: time
+    measures:
+      - name: count
+        type: count

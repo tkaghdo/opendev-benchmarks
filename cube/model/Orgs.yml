@@ -1,0 +1,14 @@
+cubes:
+  - name: orgs
+    sql_table: public.orgs
+    dimensions:
+      - name: id
+        sql: id
+        type: string
+        primary_key: true
+      - name: name
+        sql: name
+        type: string
+      - name: githubLogin
+        sql: github_login
+        type: string

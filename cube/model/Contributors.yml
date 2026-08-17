@@ -1,0 +1,20 @@
+cubes:
+  - name: contributors
+    sql_table: public.contributors
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+      - name: login
+        sql: login
+        type: string
+      - name: orgId
+        sql: org_id
+        type: string
+    measures:
+      - name: count
+        type: count
+      - name: active_contributors
+        type: count_distinct
+        sql: id

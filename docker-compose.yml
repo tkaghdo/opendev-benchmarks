@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: opendev
+      POSTGRES_PASSWORD: opendev
+      POSTGRES_DB: opendev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opendev -d opendev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  cube:
+    image: cubejs/cube:latest
+    ports:
+      - "4000:4000"
+    environment:
+      CUBEJS_DB_TYPE: postgres
+      CUBEJS_DB_HOST: postgres
+      CUBEJS_DB_NAME: opendev
+      CUBEJS_DB_USER: opendev
+      CUBEJS_DB_PASS: opendev
+      CUBEJS_API_SECRET: ${CUBE_API_SECRET:-dev-cube-secret-change-me}
+      CUBEJS_DEV_MODE: "true"
+      CUBEJS_SCHEMA_PATH: model
+      CUBEJS_SQL_USER: cube
+      CUBEJS_SQL_PASSWORD: ${CUBE_API_SECRET:-dev-cube-secret-change-me}
+    volumes:
+      - ./cube:/cube/conf
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
