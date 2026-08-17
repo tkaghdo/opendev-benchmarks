@@ -3,6 +3,8 @@ export type LaunchOrg = {
   name: string;
   githubLogin: string;
   avatarUrl: string;
+  /** Flagship public repos ingested in Build 1. Not every repo in the org. */
+  repos: string[];
 };
 
 export const LAUNCH_ORGS: LaunchOrg[] = [
@@ -11,30 +13,35 @@ export const LAUNCH_ORGS: LaunchOrg[] = [
     name: "Vercel",
     githubLogin: "vercel",
     avatarUrl: "https://github.com/vercel.png",
+    repos: ["next.js", "turbo", "ai"],
   },
   {
     id: "supabase",
     name: "Supabase",
     githubLogin: "supabase",
     avatarUrl: "https://github.com/supabase.png",
+    repos: ["supabase", "postgres"],
   },
   {
     id: "prisma",
     name: "Prisma",
     githubLogin: "prisma",
     avatarUrl: "https://github.com/prisma.png",
+    repos: ["prisma"],
   },
   {
     id: "temporal",
     name: "Temporal",
     githubLogin: "temporalio",
     avatarUrl: "https://github.com/temporalio.png",
+    repos: ["temporal", "sdk-typescript"],
   },
   {
     id: "hashicorp",
     name: "HashiCorp",
     githubLogin: "hashicorp",
     avatarUrl: "https://github.com/hashicorp.png",
+    repos: ["terraform", "vault", "consul"],
   },
 ];
 

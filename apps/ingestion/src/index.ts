@@ -1,33 +1,60 @@
-import { LAUNCH_ORGS } from "@opendev/catalog";
-import { pingDatabase } from "./db/client";
+import { config, requireGitHubToken } from "./config";
+import { createPool, ensureSchema, pingDatabase } from "./db/pool";
 import { GitHubClient } from "./github/client";
+import { startHealthServer } from "./health";
+import { runIngestion } from "./pipeline/ingest";
+import { printQualityReport, runQualityChecks } from "./quality/checks";
+import { sleep } from "./sleep";
 
-async function main() {
-  console.log("OpenDev ingestion worker");
-  console.log(`Launch orgs: ${LAUNCH_ORGS.map((org) => `${org.name} (${org.githubLogin})`).join(", ")}`);
+function args(): { loop: boolean; quality: boolean } {
+  const argv = new Set(process.argv.slice(2));
+  return { loop: argv.has("--loop"), quality: argv.has("--quality") };
+}
 
-  const databaseUrl = process.env.DATABASE_URL;
-  const token = process.env.GITHUB_TOKEN;
+async function runOnce(pool: ReturnType<typeof createPool>): Promise<void> {
+  const token = requireGitHubToken();
+  const github = new GitHubClient(token);
+  await runIngestion(pool, github);
+  const report = await runQualityChecks(pool);
+  printQualityReport(report);
+  if (!report.passed) {
+    throw new Error("Quality checks failed");
+  }
+}
 
-  if (databaseUrl) {
-    const ok = await pingDatabase(databaseUrl);
-    console.log(ok ? "Postgres: reachable" : "Postgres: unreachable");
-  } else {
-    console.log("Postgres: DATABASE_URL not set");
+async function main(): Promise<void> {
+  const { loop, quality } = args();
+  const pool = createPool(config.databaseUrl);
+  startHealthServer(pool, config.healthPort);
+
+  const dbUp = await pingDatabase(pool);
+  if (!dbUp) {
+    throw new Error(`Postgres unreachable at ${config.databaseUrl.replace(/:[^:@/]+@/, ":***@")}`);
+  }
+  await ensureSchema(pool);
+  console.log("Schema ready. Public Next.js traffic must never call GitHub.");
+
+  if (quality) {
+    const report = await runQualityChecks(pool);
+    printQualityReport(report);
+    if (!report.passed) process.exitCode = 1;
+    await pool.end();
+    process.exit(process.exitCode ?? 0);
   }
 
-  const github = new GitHubClient(token);
-  const remaining = await github.rateLimitRemaining();
-  console.log(
-    token
-      ? `GitHub: token present${remaining != null ? `, remaining=${remaining}` : ""}`
-      : "GitHub: GITHUB_TOKEN not set (required for Build 1 backfill)",
-  );
+  await runOnce(pool);
 
-  console.log(
-    "Build 1 remaining: GraphQL PR/issue/review batching, idempotent upserts, incremental cursors, ingestion_runs, 12-month backfill.",
-  );
-  console.log("Do not call this worker from visitor page loads.");
+  if (!loop) {
+    await pool.end();
+    process.exit(0);
+  }
+
+  const intervalMs = config.intervalHours * 60 * 60 * 1000;
+  console.log(`Scheduling next ingest in ${config.intervalHours}h`);
+  for (;;) {
+    await sleep(intervalMs);
+    await runOnce(pool);
+  }
 }
 
 main().catch((err) => {

@@ -32,13 +32,22 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Postgres is enough for the shell. Cube starts with `pnpm stack:up` when you begin semantic work. GitHub ingestion needs `GITHUB_TOKEN` on the worker only — never on visitor page loads.
+Postgres is enough for the shell. Cube starts with `pnpm stack:up` when you begin semantic work.
 
-To turn this folder into a git repository (Git was not on PATH when the scaffold was created):
+### Ingestion (Build 1)
+
+Put a GitHub token in `.env` (`GITHUB_TOKEN`). Public repo read is enough. Never put that token in the Next.js app.
 
 ```bash
-git init
+pnpm db:up          # Docker Desktop must be running
+pnpm ingest         # one 12-month backfill of the curated repos
+pnpm ingest:quality # integrity checks
+pnpm ingest:loop    # repeat every 4 hours
 ```
+
+The worker upserts by GitHub ids, resumes from `ingest_cursors`, skips unchanged repos, and records `ingestion_runs`. Visitor page loads never call GitHub.
+
+Health: `http://localhost:8081/` while the worker is running. Compose: `docker compose --profile ingest up -d`.
 
 ## Embedded Canvas
 
@@ -57,4 +66,4 @@ Do not add embed SDK wiring until Build 5. When you do:
 
 ## What is not in this scaffold
 
-Live metrics, GitHub backfill, Cube golden queries, embeds, tenant switching, Ask OpenDev. Those are Builds 1–10 in `docs/ROADMAP.md`.
+Cube golden queries, Embedded Canvas embeds, tenant switching, and Ask OpenDev. Those are Builds 2–10 in `docs/ROADMAP.md`.

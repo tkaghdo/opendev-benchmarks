@@ -11,6 +11,8 @@
     "build": "pnpm --filter @opendev/web build",
     "dev:ingest": "pnpm --filter @opendev/ingestion dev",
     "ingest": "pnpm --filter @opendev/ingestion start",
+    "ingest:loop": "pnpm --filter @opendev/ingestion start:loop",
+    "ingest:quality": "pnpm --filter @opendev/ingestion quality",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "stack:up": "docker compose up -d"

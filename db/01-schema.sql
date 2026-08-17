@@ -40,7 +40,8 @@ create table pull_requests (
   first_review_at timestamptz,
   additions       integer,
   deletions       integer,
-  changed_files   integer
+  changed_files     integer,
+  github_updated_at timestamptz
 );
 
 create table issues (
@@ -81,6 +82,15 @@ create table ingestion_runs (
   rows_upserted    integer default 0,
   github_remaining integer,
   error            text
+);
+
+create table ingest_cursors (
+  repo_id     bigint not null references repos(id),
+  entity      text not null,
+  cursor      text,
+  watermark   timestamptz,
+  updated_at  timestamptz not null default now(),
+  primary key (repo_id, entity)
 );
 
 create index pull_requests_org_id_idx on pull_requests (org_id);

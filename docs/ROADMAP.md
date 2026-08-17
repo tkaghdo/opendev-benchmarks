@@ -43,4 +43,4 @@ Full task lists live in the Cursor canvas from the planning session. This file i
 
 ## Scaffold status
 
-Build 3 shell is in `apps/web`. Build 1 schema/seed is in `db/`. Cube YAML stubs are in `cube/`. Ingestion is a worker stub in `apps/ingestion`.
+Build 1 ingestion lives in `apps/ingestion` (GraphQL PRs/issues/reviews, REST org metadata, idempotent upserts, cursors, quality checks). Build 3 shell is in `apps/web`. Cube YAML stubs are in `cube/`.
