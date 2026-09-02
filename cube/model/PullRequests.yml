@@ -19,11 +19,20 @@ cubes:
       - name: repoId
         sql: repo_id
         type: number
+      - name: authorId
+        sql: author_id
+        type: number
+      - name: state
+        sql: state
+        type: string
       - name: createdAt
         sql: created_at
         type: time
       - name: mergedAt
         sql: merged_at
+        type: time
+      - name: firstReviewAt
+        sql: first_review_at
         type: time
     measures:
       - name: count
@@ -35,18 +44,49 @@ cubes:
       - name: avg_cycle_time_hours
         sql: "extract(epoch from ({CUBE}.merged_at - {CUBE}.created_at)) / 3600.0"
         type: avg
+        filters:
+          - sql: "{CUBE}.merged_at is not null"
+      - name: median_cycle_time_hours
+        sql: "percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch from ({CUBE}.merged_at - {CUBE}.created_at)) / 3600.0) FILTER (WHERE {CUBE}.merged_at is not null)"
+        type: number
+        title: Median PR cycle time (hours)
       - name: avg_time_to_first_review_hours
         sql: "extract(epoch from ({CUBE}.first_review_at - {CUBE}.created_at)) / 3600.0"
         type: avg
+        filters:
+          - sql: "{CUBE}.first_review_at is not null"
+      - name: median_time_to_first_review_hours
+        sql: "percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch from ({CUBE}.first_review_at - {CUBE}.created_at)) / 3600.0) FILTER (WHERE {CUBE}.first_review_at is not null)"
+        type: number
+        title: Median time to first review (hours)
       - name: avg_pr_size
         sql: "coalesce({CUBE}.additions, 0) + coalesce({CUBE}.deletions, 0)"
         type: avg
-      # Launch metric is median; implement percentile / pre-agg in Build 2.
-      - name: median_cycle_time_hours
-        sql: "extract(epoch from ({CUBE}.merged_at - {CUBE}.created_at)) / 3600.0"
-        type: avg
-        title: Median PR cycle time hours (avg placeholder)
-      - name: median_time_to_first_review_hours
-        sql: "extract(epoch from ({CUBE}.first_review_at - {CUBE}.created_at)) / 3600.0"
-        type: avg
-        title: Median time to first review hours (avg placeholder)
+      - name: active_contributors
+        sql: "{CUBE}.author_id"
+        type: count_distinct
+        title: Distinct PR authors
+      - name: prs_per_active_contributor
+        sql: "{merged_count} / nullif({active_contributors}, 0)"
+        type: number
+    refreshKey:
+      sql: SELECT MAX(finished_at) FROM public.ingestion_runs
+    preAggregations:
+      - name: prs_daily
+        measures:
+          - count
+          - merged_count
+          - avg_cycle_time_hours
+          - avg_time_to_first_review_hours
+          - avg_pr_size
+          - active_contributors
+        dimensions:
+          - orgId
+          - repoId
+        timeDimension: createdAt
+        granularity: day
+        partitionGranularity: month
+        external: false
+        scheduledRefresh: true
+        refreshKey:
+          every: 2 hour

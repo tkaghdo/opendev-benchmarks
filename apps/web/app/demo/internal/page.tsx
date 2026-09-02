@@ -1,31 +1,49 @@
-import { LAUNCH_ORGS } from "@opendev/catalog";
 import Link from "next/link";
-import { StubPanel } from "@/components/StubPanel";
+import { EmbedSlot } from "@/components/EmbedSlot";
+import { IsolationPanel } from "@/components/IsolationPanel";
+import { SurfaceSwitcher } from "@/components/SurfaceSwitcher";
+import { listOrgsWithFallback } from "@/lib/catalogFallback";
+import { rangeHostFilters } from "@/lib/hostFilters";
 
-export default function InternalDemoPage() {
+export const dynamic = "force-dynamic";
+
+export default async function InternalDemoPage() {
+  const orgs = await listOrgsWithFallback();
+
   return (
     <div className="devmetrics-app">
       <div className="devmetrics-bar">
         <strong>DevMetrics</strong>
         <span>All customers</span>
-        <span style={{ marginLeft: "auto" }}>Employee</span>
+        <span className="devmetrics-tenant">Employee</span>
       </div>
-      <div style={{ padding: 24, width: "min(1120px, calc(100% - 32px))", margin: "0 auto" }}>
-        <p className="notice">You&apos;re now a DevMetrics employee. Cross-organization analytics use the same assets with skipTenantRls.</p>
+      <div className="devmetrics-body">
+        <p className="notice">
+          You&apos;re now a DevMetrics employee. Cross-organization analytics use the same dashboards
+          with <code>skipTenantRls</code>. Do not fork dashboard definitions for this view.
+        </p>
+        <SurfaceSwitcher orgId="vercel" />
         <h1>Internal operations</h1>
-        <ul>
-          {LAUNCH_ORGS.map((org) => (
-            <li key={org.id}>
+        <p className="org-meta">
+          Open a customer:{" "}
+          {orgs.map((org, index) => (
+            <span key={org.id}>
+              {index > 0 ? " · " : null}
               <Link href={`/demo/customer/${org.id}`}>{org.name}</Link>
-            </li>
+            </span>
           ))}
-        </ul>
-        <StubPanel build="Build 6">
-          Internal sessions skip customer RLS so the same dashboards can benchmark across
-          organizations. Do not fork dashboard definitions for this view.
-        </StubPanel>
+        </p>
+        <EmbedSlot
+          audience="internal"
+          slot="internal"
+          label="Internal analytics"
+          filters={rangeHostFilters(365)}
+        />
+        <IsolationPanel />
         <p>
-          <Link href="/how-it-works">Back to how it works</Link>
+          <Link href="/how-it-works">How it works</Link>
+          {" · "}
+          <Link href="/">Public OpenDev</Link>
         </p>
       </div>
     </div>

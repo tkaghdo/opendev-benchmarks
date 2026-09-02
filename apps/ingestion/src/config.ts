@@ -22,7 +22,8 @@ function loadRootEnv(): void {
     ) {
       value = value.slice(1, -1);
     }
-    if (process.env[key] === undefined) process.env[key] = value;
+    if (!value) continue;
+    process.env[key] = value;
   }
 }
 
@@ -43,6 +44,26 @@ function optionalNumber(name: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+export function redactDatabaseUrl(url: string): string {
+  return url.replace(/:[^:@/]+@/, ":***@");
+}
+
+export function assertWarehouseUrl(url: string): void {
+  const lower = url.toLowerCase();
+  if (
+    lower.includes("15432") ||
+    lower.includes("ecadmin") ||
+    lower.includes("embedded-canvas") ||
+    lower.includes("embeddedcanvas")
+  ) {
+    throw new Error(
+      `DATABASE_URL points at the Embedded Canvas control-plane database (${redactDatabaseUrl(url)}). ` +
+        `This worker must use postgres://opendev:opendev@localhost:5432/opendev. ` +
+        `Open a new PowerShell so leftover API env vars are not reused, or set DATABASE_URL in this repo's .env.`,
+    );
+  }
+}
+
 export const config = {
   databaseUrl: process.env.DATABASE_URL?.trim() ?? "postgres://opendev:opendev@localhost:5432/opendev",
   githubToken: process.env.GITHUB_TOKEN?.trim() ?? "",
@@ -53,6 +74,8 @@ export const config = {
   maxPages: optionalNumber("INGEST_MAX_PAGES", 400),
 };
 
+assertWarehouseUrl(config.databaseUrl);
+
 export function requireGitHubToken(): string {
   return required("GITHUB_TOKEN");
 }
@@ -60,3 +83,4 @@ export function requireGitHubToken(): string {
 export function lookbackCutoff(now = new Date()): Date {
   return new Date(now.getTime() - config.lookbackDays * 24 * 60 * 60 * 1000);
 }
+

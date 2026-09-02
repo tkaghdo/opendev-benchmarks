@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "start:loop": "tsx src/index.ts --loop",
     "quality": "tsx src/index.ts --quality",
+    "golden": "tsx src/golden/compare.ts",
     "test": "tsx --test src/github/window.test.ts"
   },
   "dependencies": {

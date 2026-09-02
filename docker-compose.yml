@@ -62,11 +62,25 @@ services:
       CUBEJS_SCHEMA_PATH: model
       CUBEJS_SQL_USER: cube
       CUBEJS_SQL_PASSWORD: ${CUBE_API_SECRET:-dev-cube-secret-change-me}
+      CUBEJS_SCHEDULED_REFRESH: "true"
+      CUBEJS_REFRESH_WORKER: "true"
     volumes:
       - ./cube:/cube/conf
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/readyz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
 
 volumes:
   postgres_data:

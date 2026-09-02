@@ -5,6 +5,9 @@ cubes:
       - name: orgs
         sql: "{CUBE}.org_id = {orgs.id}"
         relationship: many_to_one
+      - name: repos
+        sql: "{CUBE}.repo_id = {repos.id}"
+        relationship: many_to_one
     dimensions:
       - name: sha
         sql: sha
@@ -13,9 +16,32 @@ cubes:
       - name: orgId
         sql: org_id
         type: string
+      - name: repoId
+        sql: repo_id
+        type: number
       - name: committedAt
         sql: committed_at
         type: time
     measures:
       - name: count
         type: count
+      - name: active_contributors
+        sql: "{CUBE}.author_id"
+        type: count_distinct
+    refreshKey:
+      sql: SELECT MAX(finished_at) FROM public.ingestion_runs
+    preAggregations:
+      - name: commits_daily
+        measures:
+          - count
+          - active_contributors
+        dimensions:
+          - orgId
+          - repoId
+        timeDimension: committedAt
+        granularity: day
+        partitionGranularity: month
+        external: false
+        scheduledRefresh: true
+        refreshKey:
+          every: 2 hour

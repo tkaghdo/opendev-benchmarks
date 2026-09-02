@@ -1,0 +1,26 @@
+cubes:
+  - name: contributor_first_seen
+    sql: >
+      SELECT org_id, author_id, min(created_at) AS first_seen_at
+      FROM public.pull_requests
+      WHERE author_id IS NOT NULL
+      GROUP BY org_id, author_id
+    dimensions:
+      - name: id
+        sql: "org_id || ':' || author_id::text"
+        type: string
+        primary_key: true
+      - name: orgId
+        sql: org_id
+        type: string
+      - name: authorId
+        sql: author_id
+        type: number
+      - name: firstSeenAt
+        sql: first_seen_at
+        type: time
+    measures:
+      - name: new_contributors
+        sql: "{CUBE}.author_id"
+        type: count_distinct
+        title: Authors whose first PR falls in the selected range

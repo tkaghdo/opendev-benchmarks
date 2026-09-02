@@ -1,0 +1,35 @@
+cubes:
+  - name: contributor_concentration
+    sql: >
+      WITH author_prs AS (
+        SELECT org_id, author_id, count(*)::bigint AS prs
+        FROM public.pull_requests
+        WHERE author_id IS NOT NULL
+        GROUP BY org_id, author_id
+      ),
+      ranked AS (
+        SELECT
+          org_id,
+          author_id,
+          prs,
+          row_number() OVER (PARTITION BY org_id ORDER BY prs DESC) AS rn
+        FROM author_prs
+      )
+      SELECT
+        org_id,
+        sum(prs) FILTER (WHERE rn <= 10)::double precision
+          / nullif(sum(prs), 0) AS top10_share
+      FROM ranked
+      GROUP BY org_id
+    refreshKey:
+      sql: SELECT MAX(finished_at) FROM public.ingestion_runs
+    dimensions:
+      - name: orgId
+        sql: org_id
+        type: string
+        primary_key: true
+    measures:
+      - name: top10_share
+        sql: top10_share
+        type: avg
+        title: Share of PRs authored by the top 10 authors

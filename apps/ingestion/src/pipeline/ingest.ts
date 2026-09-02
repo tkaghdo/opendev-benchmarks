@@ -206,9 +206,16 @@ export async function runIngestion(pool: pg.Pool, github: GitHubClient): Promise
       rows.orgs += 1;
 
       for (const repoName of org.repos) {
-        const result = await ingestRepo(pool, github, org, repoName, cutoff);
-        addCounts(rows, result.counts);
-        if (result.skipped) skippedRepos.push(`${org.githubLogin}/${repoName}`);
+        try {
+          const result = await ingestRepo(pool, github, org, repoName, cutoff);
+          addCounts(rows, result.counts);
+          if (result.skipped) skippedRepos.push(`${org.githubLogin}/${repoName}`);
+        } catch (err) {
+          console.log(
+            `  ${org.githubLogin}/${repoName} failed: ${err instanceof Error ? err.message : err}`,
+          );
+          skippedRepos.push(`${org.githubLogin}/${repoName}`);
+        }
       }
     }
 

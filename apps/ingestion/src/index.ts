@@ -1,10 +1,13 @@
-import { config, requireGitHubToken } from "./config";
+import dns from "node:dns";
+import { config, redactDatabaseUrl, requireGitHubToken } from "./config";
 import { createPool, ensureSchema, pingDatabase } from "./db/pool";
 import { GitHubClient } from "./github/client";
 import { startHealthServer } from "./health";
 import { runIngestion } from "./pipeline/ingest";
 import { printQualityReport, runQualityChecks } from "./quality/checks";
 import { sleep } from "./sleep";
+
+dns.setDefaultResultOrder("ipv4first");
 
 function args(): { loop: boolean; quality: boolean } {
   const argv = new Set(process.argv.slice(2));
@@ -29,10 +32,10 @@ async function main(): Promise<void> {
 
   const dbUp = await pingDatabase(pool);
   if (!dbUp) {
-    throw new Error(`Postgres unreachable at ${config.databaseUrl.replace(/:[^:@/]+@/, ":***@")}`);
+    throw new Error(`Postgres unreachable at ${redactDatabaseUrl(config.databaseUrl)}`);
   }
   await ensureSchema(pool);
-  console.log("Schema ready. Public Next.js traffic must never call GitHub.");
+  console.log(`Schema ready at ${redactDatabaseUrl(config.databaseUrl)}. Public Next.js traffic must never call GitHub.`);
 
   if (quality) {
     const report = await runQualityChecks(pool);

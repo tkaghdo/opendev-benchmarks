@@ -3,6 +3,28 @@ import type { RateLimit } from "./types";
 
 const USER_AGENT = "opendev-benchmarks-ingestion";
 
+function networkCode(err: unknown): string {
+  if (!err || typeof err !== "object") return "";
+  const withCause = err as { code?: string; cause?: { code?: string } };
+  return withCause.cause?.code ?? withCause.code ?? "";
+}
+
+export function isRetryableNetworkError(err: unknown): boolean {
+  const code = networkCode(err);
+  if (
+    code === "ENOTFOUND" ||
+    code === "EAI_AGAIN" ||
+    code === "ECONNRESET" ||
+    code === "ETIMEDOUT" ||
+    code === "ECONNREFUSED" ||
+    code === "UND_ERR_CONNECT_TIMEOUT" ||
+    code === "UND_ERR_SOCKET"
+  ) {
+    return true;
+  }
+  return err instanceof Error && err.message.includes("fetch failed");
+}
+
 export class GitHubHttp {
   remaining = 5000;
   resetAt = new Date(Date.now() + 60 * 60 * 1000);
@@ -28,17 +50,29 @@ export class GitHubHttp {
 
   async request(url: string, init: RequestInit = {}, attempt = 0): Promise<Response> {
     await this.throttle();
-    const res = await fetch(url, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": USER_AGENT,
-        ...(init.body ? { "Content-Type": "application/json" } : {}),
-        ...init.headers,
-      },
-    });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": USER_AGENT,
+          ...(init.body ? { "Content-Type": "application/json" } : {}),
+          ...init.headers,
+        },
+      });
+    } catch (err) {
+      if (attempt < 6 && isRetryableNetworkError(err)) {
+        const backoff = 2 ** attempt * 2000;
+        const code = networkCode(err) || "fetch failed";
+        console.log(`GitHub network ${code}; retry in ${Math.ceil(backoff / 1000)}s (${url})`);
+        await sleep(backoff);
+        return this.request(url, init, attempt + 1);
+      }
+      throw err;
+    }
     this.note(null, res.headers);
 
     if (res.status === 403 || res.status === 429 || res.status >= 500) {

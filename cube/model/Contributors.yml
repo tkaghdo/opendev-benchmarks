@@ -16,5 +16,5 @@ cubes:
       - name: count
         type: count
       - name: active_contributors
+        sql: "{CUBE}.id"
         type: count_distinct
-        sql: id

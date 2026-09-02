@@ -1,11 +1,20 @@
 cubes:
   - name: reviews
-    sql_table: public.reviews
+    sql: >
+      SELECT r.id, r.pull_request_id, r.reviewer_id, r.state, r.submitted_at, pr.org_id, pr.repo_id
+      FROM public.reviews r
+      JOIN public.pull_requests pr ON pr.id = r.pull_request_id
     dimensions:
       - name: id
         sql: id
         type: number
         primary_key: true
+      - name: orgId
+        sql: org_id
+        type: string
+      - name: repoId
+        sql: repo_id
+        type: number
       - name: state
         sql: state
         type: string

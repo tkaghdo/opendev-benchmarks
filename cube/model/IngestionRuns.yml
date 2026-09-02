@@ -1,0 +1,25 @@
+cubes:
+  - name: ingestion_runs
+    sql_table: public.ingestion_runs
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+      - name: status
+        sql: status
+        type: string
+      - name: finishedAt
+        sql: finished_at
+        type: time
+    measures:
+      - name: last_success_at
+        sql: finished_at
+        type: max
+        title: Last successful ingest timestamp
+        filters:
+          - sql: "{CUBE}.status = 'success'"
+      - name: last_success_count
+        type: count
+        filters:
+          - sql: "{CUBE}.status = 'success'"

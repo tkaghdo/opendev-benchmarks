@@ -15,7 +15,9 @@
     "ingest:quality": "pnpm --filter @opendev/ingestion quality",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
-    "stack:up": "docker compose up -d"
+    "stack:up": "docker compose up -d",
+    "cube:up": "docker compose up -d postgres cube",
+    "cube:golden": "pnpm --filter @opendev/ingestion golden"
   },
   "pnpm": {
     "onlyBuiltDependencies": ["esbuild", "sharp"]

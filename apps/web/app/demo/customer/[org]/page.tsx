@@ -1,7 +1,16 @@
-import { LAUNCH_ORGS, getOrg } from "@opendev/catalog";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { StubPanel } from "@/components/StubPanel";
+import { EmbedSlot } from "@/components/EmbedSlot";
+import { IsolationPanel } from "@/components/IsolationPanel";
+import { KpiCard } from "@/components/KpiCard";
+import { NativeKpiValue } from "@/components/NativeKpiValue";
+import { SurfaceSwitcher } from "@/components/SurfaceSwitcher";
+import { getOrgWithFallback, listOrgsWithFallback } from "@/lib/catalogFallback";
+import { formatCount, formatHours } from "@/lib/format";
+import { rangeHostFilters } from "@/lib/hostFilters";
+import { loadOrgSnapshots } from "@/lib/metrics";
+
+export const dynamic = "force-dynamic";
 
 export default async function CustomerDemoPage({
   params,
@@ -9,8 +18,21 @@ export default async function CustomerDemoPage({
   params: Promise<{ org: string }>;
 }) {
   const { org: orgId } = await params;
-  const org = getOrg(orgId);
+  const org = await getOrgWithFallback(orgId);
   if (!org) notFound();
+
+  const orgs = await listOrgsWithFallback();
+  let snap = null;
+  try {
+    const snapshots = await loadOrgSnapshots(365);
+    snap = snapshots.find((row) => row.orgId === org.id) ?? null;
+  } catch {
+    snap = null;
+  }
+
+  // The governed cards are scoped by the demo tenant cookie, not by this
+  // orgId: the metrics BFF ignores a customer-audience org sent in the body.
+  const hostFilters = rangeHostFilters(365, { org_id: org.id });
 
   return (
     <div className="devmetrics-app">
@@ -20,31 +42,90 @@ export default async function CustomerDemoPage({
         <span>Engineering</span>
         <span>Repositories</span>
         <span>Team</span>
-        <span>Analytics</span>
+        <span className="is-nav-current">Analytics</span>
         <span>Settings</span>
-        <span style={{ marginLeft: "auto" }}>Customer: {org.name}</span>
+        <span className="devmetrics-tenant">Customer: {org.name}</span>
       </div>
-      <div style={{ padding: 24, width: "min(1120px, calc(100% - 32px))", margin: "0 auto" }}>
+      <div className="devmetrics-body">
         <p className="notice">
-          You are viewing the fictional customer embed. Only {org.name} data will be visible once
-          tenant RLS is wired in Build 6.
+          You&apos;re viewing DevMetrics as {org.name}. Only {org.name} data is in this security
+          context. The session BFF reads an HttpOnly cookie, not the request body.
         </p>
+        <SurfaceSwitcher orgId={org.id} />
         <h1>{org.name} analytics</h1>
-        <StubPanel build="Build 5 / 6">
-          Chromeless Embedded Canvas mounts here. Session mint sets customerId to{" "}
-          <code>{org.id}</code>. The same dashboard ids are reused on OpenDev public and internal
-          views. Switch customer:{" "}
-          {LAUNCH_ORGS.map((item, index) => (
+        {snap ? (
+          <dl className="metrics">
+            <KpiCard
+              name="PRs merged"
+              value={formatCount(snap.mergedCount)}
+              liveValue={
+                <NativeKpiValue
+                  metricKey="prs_merged"
+                  audience="customer"
+                  orgId={org.id}
+                  filters={hostFilters}
+                />
+              }
+            />
+            <KpiCard
+              name="Median PR cycle time"
+              value={formatHours(snap.medianCycleHours)}
+              liveValue={
+                <NativeKpiValue
+                  metricKey="median_cycle_time"
+                  audience="customer"
+                  orgId={org.id}
+                  filters={hostFilters}
+                />
+              }
+            />
+            <KpiCard
+              name="Median time to first review"
+              value={formatHours(snap.medianFirstReviewHours)}
+              liveValue={
+                <NativeKpiValue
+                  metricKey="median_first_review"
+                  audience="customer"
+                  orgId={org.id}
+                  filters={hostFilters}
+                />
+              }
+            />
+            <KpiCard
+              name="Active contributors"
+              value={formatCount(snap.activeContributors)}
+              liveValue={
+                <NativeKpiValue
+                  metricKey="active_contributors"
+                  audience="customer"
+                  orgId={org.id}
+                  filters={hostFilters}
+                />
+              }
+            />
+          </dl>
+        ) : null}
+        <EmbedSlot
+          audience="customer"
+          orgId={org.id}
+          slot="customer"
+          label="Customer analytics"
+          filters={hostFilters}
+        />
+        <p className="org-meta">
+          Switch customer:{" "}
+          {orgs.map((item, index) => (
             <span key={item.id}>
               {index > 0 ? " · " : null}
               <Link href={`/demo/customer/${item.id}`}>{item.name}</Link>
             </span>
           ))}
-        </StubPanel>
+        </p>
+        <IsolationPanel orgId={org.id} />
         <p>
-          Switch to <Link href="/demo/internal">internal operations</Link>
+          <Link href="/demo/internal">Internal operations</Link>
           {" · "}
-          <Link href={`/org/${org.id}`}>public OpenDev page</Link>
+          <Link href={`/org/${org.id}`}>Public OpenDev</Link>
         </p>
       </div>
     </div>

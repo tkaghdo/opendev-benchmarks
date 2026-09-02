@@ -16,12 +16,18 @@ cubes:
       - name: orgId
         sql: org_id
         type: string
-      - name: createdAt
-        sql: created_at
-        type: time
+      - name: repoId
+        sql: repo_id
+        type: number
       - name: state
         sql: state
         type: string
+      - name: createdAt
+        sql: created_at
+        type: time
+      - name: closedAt
+        sql: closed_at
+        type: time
     measures:
       - name: count
         type: count
@@ -32,14 +38,41 @@ cubes:
       - name: closed_count
         type: count
         filters:
-          - sql: "{CUBE}.state = 'closed'"
+          - sql: "{CUBE}.closed_at is not null"
+      - name: bug_count
+        type: count
+        filters:
+          - sql: "{CUBE}.is_bug = true"
       - name: avg_resolution_time_hours
         sql: "extract(epoch from ({CUBE}.closed_at - {CUBE}.created_at)) / 3600.0"
         type: avg
+        filters:
+          - sql: "{CUBE}.closed_at is not null"
       - name: median_resolution_time_hours
-        sql: "extract(epoch from ({CUBE}.closed_at - {CUBE}.created_at)) / 3600.0"
-        type: avg
-        title: Median issue resolution hours (avg placeholder)
-      - name: bug_ratio
-        sql: "1.0 * count(case when {CUBE}.is_bug then 1 end) / nullif(count(*), 0)"
+        sql: "percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch from ({CUBE}.closed_at - {CUBE}.created_at)) / 3600.0) FILTER (WHERE {CUBE}.closed_at is not null)"
         type: number
+        title: Median issue resolution (hours)
+      - name: bug_ratio
+        sql: "({CUBE}.is_bug)::int"
+        type: avg
+        title: Share of issues labeled as bugs
+    refreshKey:
+      sql: SELECT MAX(finished_at) FROM public.ingestion_runs
+    preAggregations:
+      - name: issues_daily
+        measures:
+          - count
+          - open_count
+          - closed_count
+          - bug_count
+          - avg_resolution_time_hours
+        dimensions:
+          - orgId
+          - repoId
+        timeDimension: createdAt
+        granularity: day
+        partitionGranularity: month
+        external: false
+        scheduledRefresh: true
+        refreshKey:
+          every: 2 hour

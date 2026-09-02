@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { GITHUB_REPO_URL } from "@/lib/publicLinks";
 
 const links = [
   { href: "/", label: "Explore" },
   { href: "/compare", label: "Compare" },
-  { href: "/benchmarks", label: "Benchmarks" },
-  { href: "/ask", label: "Ask OpenDev" },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ freshnessLabel }: { freshnessLabel: string }) {
   const pathname = usePathname();
 
   return (
@@ -30,7 +29,23 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <Link href="/how-it-works" className="reveal">
+        <span className="freshness" title="Last successful warehouse ingest">
+          {freshnessLabel}
+        </span>
+        <a href={GITHUB_REPO_URL} className="reveal" rel="noopener noreferrer">
+          GitHub
+        </a>
+        <Link
+          href="/how-it-works"
+          className="reveal"
+          onClick={() => {
+            void fetch("/api/funnel", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ event: "reveal_click", path: pathname }),
+            });
+          }}
+        >
           See how this was built
         </Link>
       </div>

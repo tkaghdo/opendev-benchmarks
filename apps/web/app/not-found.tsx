@@ -4,10 +4,15 @@ export default function NotFound() {
   return (
     <div className="shell">
       <main className="shell-main">
-        <h1>Not found</h1>
-        <p className="lede">That organization or page is not in the OpenDev catalog yet.</p>
+        <p className="kicker">Not found</p>
+        <h1>That page is not in OpenDev</h1>
+        <p className="lede">
+          Missing organizations and unknown routes stay in this catalog. Nothing here calls GitHub.
+        </p>
         <p>
-          <Link href="/">Back to OpenDev</Link>
+          <Link href="/">Back to Explore</Link>
+          {" · "}
+          <Link href="/compare">Compare</Link>
         </p>
       </main>
     </div>

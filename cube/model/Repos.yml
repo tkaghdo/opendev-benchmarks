@@ -22,6 +22,9 @@ cubes:
       - name: language
         sql: language
         type: string
+      - name: createdAt
+        sql: created_at
+        type: time
     measures:
       - name: count
         type: count
